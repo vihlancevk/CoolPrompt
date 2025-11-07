@@ -5,10 +5,10 @@ You are given a user's prompt.
 Write the detailed problem description for which that prompt was created.
 Use only textual description. Do not add another data.
 Prompt: {prompt}
-Provide your answer in JSON format with object with key 'problem_description'.
+Provide your answer in JSON format with object with key "problem_description".
 Output format:
 {{
-    'problem_description': "Determined problem description"
+    "problem_description": "Determined problem description"
 }}
 """
 
