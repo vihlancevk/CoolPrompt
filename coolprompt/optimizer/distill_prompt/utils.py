@@ -7,7 +7,6 @@ ensure experimental reproducibility.
 
 import os
 import random
-from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -16,7 +15,7 @@ import torch
 class TextSampler:
     """A simple class to randomly sample text-label pairs from a dataset."""
 
-    def __init__(self, texts: List[str], labels: List[str]) -> None:
+    def __init__(self, texts: list[str], labels: list[str]) -> None:
         """Initializes the TextSampler with texts and corresponding labels.
 
         Args:
@@ -26,7 +25,7 @@ class TextSampler:
         self.texts = texts
         self.labels = labels
 
-    def sample(self, count: int) -> List[Tuple[str, str]]:
+    def sample(self, count: int) -> list[tuple[str, str]]:
         """Samples a specified number of text-label pairs without replacement.
 
         If the requested count is larger than the dataset size, it returns
@@ -56,7 +55,7 @@ def seed_everything(seed: int = 42) -> None:
             Defaults to 42.
     """
     random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)  # noqa: NPY002
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)

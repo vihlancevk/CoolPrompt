@@ -1,3 +1,5 @@
+# ruff: noqa: ANN001, ANN201
+
 import re
 
 
@@ -14,4 +16,4 @@ def mean(lst):
 
 
 def extract_number_from_text(text):
-    return re.findall(r'-?\d+(?:\.\d+)?', text)[-1]
+    return re.findall(r"-?\d+(?:\.\d+)?", text)[-1]

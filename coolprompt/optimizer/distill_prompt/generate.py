@@ -5,14 +5,13 @@ refining and generating prompts using a Large Language Model (LLM).
 This includes methods for compression, distillation,
 aggregation, and synonym generation.
 """
-from typing import List
 
-from langchain_core.messages.ai import AIMessage
 from langchain_core.language_models.base import BaseLanguageModel
+from langchain_core.messages.ai import AIMessage
 
-from coolprompt.utils.prompt_templates import distillprompt_templates
 from coolprompt.optimizer.distill_prompt.candidate import Candidate
 from coolprompt.optimizer.distill_prompt.utils import TextSampler
+from coolprompt.utils.prompt_templates import distillprompt_templates
 
 
 class PromptTransformer:
@@ -28,9 +27,7 @@ class PromptTransformer:
         self.model = model
         self.sampler = sampler
 
-    def aggregate_prompts(
-        self, candidates: List[Candidate], temperature: float = 0.4
-    ) -> str:
+    def aggregate_prompts(self, candidates: list[Candidate], temperature: float = 0.4) -> str:
         """Aggregates multiple prompts into a single concise prompt.
 
         Args:
@@ -43,18 +40,14 @@ class PromptTransformer:
             str: The aggregated prompt.
         """
         formatted_prompts = self._format_prompts_for_aggregation(candidates)
-        aggregation_prompt = distillprompt_templates.AGGREGATION_PROMPT.format(
-            formatted_prompts=formatted_prompts
-        )
+        aggregation_prompt = distillprompt_templates.AGGREGATION_PROMPT.format(formatted_prompts=formatted_prompts)
         answer = self.model.invoke(aggregation_prompt, temperature=temperature)
         if isinstance(answer, AIMessage):
             answer = answer.content
 
         return self._parse_tagged_text(str(answer), "<START>", "<END>")
 
-    def compress_prompts(
-        self, candidates: List[Candidate], temperature: float = 0.4
-    ) -> List[str]:
+    def compress_prompts(self, candidates: list[Candidate], temperature: float = 0.4) -> list[str]:
         """Compresses multiple prompts into shorter versions.
 
         Args:
@@ -69,25 +62,17 @@ class PromptTransformer:
         request_prompts = []
         for candidate in candidates:
             compression_prompt = distillprompt_templates.COMPRESSION_PROMPT
-            compression_prompt = compression_prompt.format(
-                candidate_prompt=candidate.prompt
-            )
+            compression_prompt = compression_prompt.format(candidate_prompt=candidate.prompt)
             request_prompts.append(compression_prompt)
 
         answers = self.model.batch(request_prompts, temperature=temperature)
-        answers = [a.content
-                   if isinstance(a, AIMessage)
-                   else a for a in answers]
+        answers = [a.content if isinstance(a, AIMessage) else a for a in answers]
 
-        return [
-            self._parse_tagged_text(answer, "<START>", "<END>")
-            for answer in answers
-        ]
+        return [self._parse_tagged_text(answer, "<START>", "<END>") for answer in answers]
 
     def distill_samples(
-        self, candidates: List[Candidate], sample_count: int = 5,
-        temperature: float = 0.5
-    ) -> List[str]:
+        self, candidates: list[Candidate], sample_count: int = 5, temperature: float = 0.5
+    ) -> list[str]:
         """Distills insights from training samples to improve prompts.
 
         Args:
@@ -106,23 +91,14 @@ class PromptTransformer:
             train_samples = self.sampler.sample(sample_count)
             sample_string = self._format_samples(train_samples)
             prompt = distillprompt_templates.DISTILLATION_PROMPT
-            distillation_prompt = prompt.format(
-                candidate_prompt=candidate.prompt, sample_string=sample_string
-            )
+            distillation_prompt = prompt.format(candidate_prompt=candidate.prompt, sample_string=sample_string)
             request_prompts.append(distillation_prompt)
 
         answers = self.model.batch(request_prompts, temperature=temperature)
-        answers = [a.content
-                   if isinstance(a, AIMessage)
-                   else a for a in answers]
-        return [
-            self._parse_tagged_text(answer, "<START>", "<END>")
-            for answer in answers
-        ]
+        answers = [a.content if isinstance(a, AIMessage) else a for a in answers]
+        return [self._parse_tagged_text(answer, "<START>", "<END>") for answer in answers]
 
-    def generate_prompts(
-        self, candidate: Candidate, n: int = 4, temperature: float = 0.7
-    ) -> List[str]:
+    def generate_prompts(self, candidate: Candidate, n: int = 4, temperature: float = 0.7) -> list[str]:
         """Generates new prompts based on a candidate's score.
 
         Args:
@@ -137,22 +113,14 @@ class PromptTransformer:
             List[str]: List of generated prompts.
         """
         generation_prompt = distillprompt_templates.GENERATION_PROMPT.format(
-            candidate_prompt=candidate.prompt,
-            train_score=candidate.train_score
+            candidate_prompt=candidate.prompt, train_score=candidate.train_score
         )
         requests = [generation_prompt] * n
         answers = self.model.batch(requests, temperature=temperature)
-        answers = [a.content
-                   if isinstance(a, AIMessage)
-                   else a for a in answers]
-        return [
-            self._parse_tagged_text(answer, "<START>", "<END>")
-            for answer in answers
-        ]
+        answers = [a.content if isinstance(a, AIMessage) else a for a in answers]
+        return [self._parse_tagged_text(answer, "<START>", "<END>") for answer in answers]
 
-    def generate_synonyms(
-        self, candidate: Candidate, n: int = 3, temperature: float = 0.7
-    ) -> List[str]:
+    def generate_synonyms(self, candidate: Candidate, n: int = 3, temperature: float = 0.7) -> list[str]:
         """Generates semantic variations of a given prompt.
 
         Args:
@@ -165,19 +133,13 @@ class PromptTransformer:
         Returns:
             List[str]: List of synonym prompts.
         """
-        rewriter_prompt = distillprompt_templates.REWRITER_PROMPT.format(
-            candidate_prompt=candidate.prompt
-        )
+        rewriter_prompt = distillprompt_templates.REWRITER_PROMPT.format(candidate_prompt=candidate.prompt)
         requests = [rewriter_prompt] * n
         responses = self.model.batch(requests, temperature=temperature)
-        responses = [a.content
-                     if isinstance(a, AIMessage)
-                     else a for a in responses]
+        responses = [a.content if isinstance(a, AIMessage) else a for a in responses]
         return [response for response in responses if response]
 
-    def convert_to_fewshot(
-        self, candidate: Candidate, sample_count: int = 3
-    ) -> str:
+    def convert_to_fewshot(self, candidate: Candidate, sample_count: int = 3) -> str:
         """Converts a zero-shot prompt into a few-shot format with examples.
 
         Args:
@@ -193,7 +155,7 @@ class PromptTransformer:
         return f"{candidate.prompt}\n\nExamples:\n{sample_string}"
 
     @staticmethod
-    def _format_prompts_for_aggregation(candidates: List[Candidate]) -> str:
+    def _format_prompts_for_aggregation(candidates: list[Candidate]) -> str:
         """Formats a list of candidate prompts for the aggregation prompt.
 
         Args:
@@ -202,12 +164,10 @@ class PromptTransformer:
         Returns:
             str: Formatted string of prompts for aggregation.
         """
-        return "\n\n".join(
-            [f"Prompt {i}: {cand.prompt}" for i, cand in enumerate(candidates)]
-        )
+        return "\n\n".join([f"Prompt {i}: {cand.prompt}" for i, cand in enumerate(candidates)])
 
     @staticmethod
-    def _format_samples(samples: List[tuple[str, str]]) -> str:
+    def _format_samples(samples: list[tuple[str, str]]) -> str:
         """Formats training samples into a string for few-shot examples.
 
         Args:
@@ -219,11 +179,7 @@ class PromptTransformer:
         """
         formatted_strings = []
         for i, (text_input, output) in enumerate(samples):
-            formatted_strings.append(
-                f'Example {i + 1}:\n'
-                f'Text: "{text_input.strip()}"\n'
-                f'Label: {output}'
-            )
+            formatted_strings.append(f'Example {i + 1}:\nText: "{text_input.strip()}"\nLabel: {output}')
         return "\n\n".join(formatted_strings)
 
     @staticmethod
@@ -246,4 +202,4 @@ class PromptTransformer:
         if end_index == -1:
             return text
 
-        return text[start_index + len(start_tag):end_index].strip()
+        return text[start_index + len(start_tag) : end_index].strip()

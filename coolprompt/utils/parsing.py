@@ -1,12 +1,11 @@
+from typing import Any
+
 from dirtyjson import DirtyJSONLoader
-from typing import Tuple
 from langchain_core.language_models.base import BaseLanguageModel
 from langchain_core.messages.ai import AIMessage
 
 
-def extract_answer(
-    answer: str, tags: Tuple[str, str], format_mismatch_label: int | str = -1
-) -> str | int:
+def extract_answer(answer: str, tags: tuple[str, str], format_mismatch_label: int | str = -1) -> str | int:
     """Extract label from model output string containing XML-style tags.
 
     Args:
@@ -33,11 +32,10 @@ def extract_answer(
     if end_idx == -1:
         return format_mismatch_label
 
-    label = answer[content_start:end_idx]
-    return label
+    return answer[content_start:end_idx]
 
 
-def safe_template(template: str, **kwargs) -> str:
+def safe_template(template: str, **kwargs: dict[str, Any]) -> str:
     """Safely formats the `template` with vars from `kwargs`.
 
     Args:
@@ -48,10 +46,7 @@ def safe_template(template: str, **kwargs) -> str:
             for safety.
     """
 
-    escaped = {
-        k: str(v).replace("{", "{{").replace("}", "}}")
-        for k, v in kwargs.items()
-    }
+    escaped = {k: str(v).replace("{", "{{").replace("}", "}}") for k, v in kwargs.items()}
     return template.format(**escaped)
 
 
@@ -77,7 +72,7 @@ def extract_json(text: str) -> dict | None:
             break
         try:
             return dict(loader.decode(start_index=start_pos))
-        except:
+        except Exception:  # noqa: BLE001
             pos = start_pos + 1
 
     return None
@@ -111,11 +106,9 @@ def parse_assistant_response(answer: str) -> str:
             think_end_pos = answer_after.find(think_end)
             if think_end_pos == -1:
                 return ""
-            else:
-                return answer_after[think_end_pos + len(think_end) :].strip()
+            return answer_after[think_end_pos + len(think_end) :].strip()
         return answer_after.strip()
-    else:
-        return answer.strip()
+    return answer.strip()
 
 
 def get_model_answer_extracted(llm: BaseLanguageModel, prompt: str) -> str:
@@ -133,6 +126,4 @@ def get_model_answer_extracted(llm: BaseLanguageModel, prompt: str) -> str:
     if isinstance(answer, AIMessage):
         answer = answer.content
 
-    answer = parse_assistant_response(answer)
-
-    return answer
+    return parse_assistant_response(answer)

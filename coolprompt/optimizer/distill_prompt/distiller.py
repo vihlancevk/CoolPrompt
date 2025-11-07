@@ -1,3 +1,5 @@
+# ruff: noqa: ANN401, G004
+
 """Distiller module for prompt optimization.
 
 This module provides the Distiller class for DistillPrompt optimization,
@@ -5,14 +7,14 @@ which handles the process of generating, evaluating, and refining prompts.
 """
 
 import os
-import yaml
-from typing import Any, List
+from pathlib import Path
+from typing import Any
 
-from tqdm import tqdm
+import yaml
 from langchain_core.language_models.base import BaseLanguageModel
+from tqdm import tqdm
 
 from coolprompt.evaluator import Evaluator
-from coolprompt.utils.logging_config import logger
 from coolprompt.optimizer.distill_prompt.candidate import (
     Candidate,
     CandidateHistory,
@@ -22,6 +24,7 @@ from coolprompt.optimizer.distill_prompt.utils import (
     TextSampler,
     seed_everything,
 )
+from coolprompt.utils.logging_config import logger
 
 
 class Distiller:
@@ -43,17 +46,18 @@ class Distiller:
         output_path: Path to store logs of optimization.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         model: BaseLanguageModel,
         evaluator: Evaluator,
-        train_dataset: List[str],
-        train_targets: List[str],
-        validation_dataset: List[str],
-        validation_targets: List[str],
+        train_dataset: list[str],
+        train_targets: list[str],
+        validation_dataset: list[str],
+        validation_targets: list[str],
         base_prompt: str,
         num_epochs: int = 10,
         output_path: str = "./distillprompt_outputs",
+        *,
         use_cache: bool = True,
     ) -> None:
         """Initializes the Distiller with the given parameters.
@@ -106,12 +110,11 @@ class Distiller:
             dataset = self.validation_dataset
             targets = self.validation_targets
 
-        score = self.evaluator.evaluate(
+        return self.evaluator.evaluate(
             prompt=prompt,
             dataset=dataset,
             targets=targets,
         )
-        return score
 
     def _cache_data(self, data: Any, savepath: os.PathLike) -> None:
         """Writes data to a YAML file if caching is enabled.
@@ -123,8 +126,8 @@ class Distiller:
         if not self.use_cache:
             return
 
-        os.makedirs(os.path.dirname(savepath), exist_ok=True)
-        with open(savepath, "w") as f:
+        Path.mkdir(Path(savepath).parent, exist_ok=True)
+        with Path(savepath).open("w") as f:
             yaml.dump(data, f)
 
     def _make_output_path(self, filename: str) -> str:
@@ -136,9 +139,7 @@ class Distiller:
         Returns:
             str: Full path including iteration number and extension.
         """
-        return os.path.join(
-            self.output_path, f"Iteration{self.iteration}", f"{filename}.yaml"
-        )
+        return str(Path(self.output_path) / f"Iteration{self.iteration}" / f"{filename}.yaml")
 
     def distillation(self) -> str:
         """Performs DistillPrompt optimization.
@@ -170,56 +171,31 @@ class Distiller:
 
             # Generation
             gen_prompts = transformer.generate_prompts(best_candidate)
-            gen_candidates = [
-                Candidate(prompt, self._evaluate(prompt))
-                for prompt in gen_prompts
-            ]
+            gen_candidates = [Candidate(prompt, self._evaluate(prompt)) for prompt in gen_prompts]
             history.extend(gen_candidates)
 
             # Distillation
             distilled_prompts = transformer.distill_samples(gen_candidates)
-            distilled_candidates = [
-                Candidate(prompt, self._evaluate(prompt))
-                for prompt in distilled_prompts
-            ]
+            distilled_candidates = [Candidate(prompt, self._evaluate(prompt)) for prompt in distilled_prompts]
             history.extend(distilled_candidates)
 
             # Compression
-            compressed_prompts = transformer.compress_prompts(
-                distilled_candidates
-            )
-            compressed_candidates = [
-                Candidate(prompt, self._evaluate(prompt))
-                for prompt in compressed_prompts
-            ]
+            compressed_prompts = transformer.compress_prompts(distilled_candidates)
+            compressed_candidates = [Candidate(prompt, self._evaluate(prompt)) for prompt in compressed_prompts]
             history.extend(compressed_candidates)
 
             # Aggregation
-            aggregated_prompt = transformer.aggregate_prompts(
-                compressed_candidates
-            )
-            aggregated_candidate = Candidate(
-                aggregated_prompt, self._evaluate(aggregated_prompt)
-            )
-            aggregated_synonyms = transformer.generate_synonyms(
-                aggregated_candidate, n=3
-            )
+            aggregated_prompt = transformer.aggregate_prompts(compressed_candidates)
+            aggregated_candidate = Candidate(aggregated_prompt, self._evaluate(aggregated_prompt))
+            aggregated_synonyms = transformer.generate_synonyms(aggregated_candidate, n=3)
 
-            final_candidates = [
-                Candidate(prompt, self._evaluate(prompt))
-                for prompt in aggregated_synonyms
-            ]
+            final_candidates = [Candidate(prompt, self._evaluate(prompt)) for prompt in aggregated_synonyms]
             final_candidates.append(aggregated_candidate)
             history.extend(final_candidates)
 
             best_candidate = history.get_highest_scorer()
-            self.logger.info(
-                f"Best candidate score in round {round_num}: "
-                f"{best_candidate.train_score}"
-            )
-            self.logger.debug(
-                f"Best candidate prompt: {best_candidate.prompt}"
-            )
+            self.logger.info(f"Best candidate score in round {round_num}: {best_candidate.train_score}")
+            self.logger.debug(f"Best candidate prompt: {best_candidate.prompt}")
 
             # Cache results
             self._cache_data(
@@ -232,14 +208,12 @@ class Distiller:
 
         final_prompt = best_candidate.prompt
         final_score = self._evaluate(final_prompt, split="validation")
-        self.logger.info(
-            f"Final best prompt score on validation: {final_score}"
-        )
+        self.logger.info(f"Final best prompt score on validation: {final_score}")
         self.logger.debug(f"Final best prompt: {final_prompt}")
 
         self._cache_data(
             {"final_prompt": final_prompt, "final_score": final_score},
-            os.path.join(self.output_path, "final_results.yaml"),
+            str(Path(self.output_path) / "final_results.yaml"),
         )
 
         self.logger.info("DistillPrompt optimization completed")

@@ -6,23 +6,21 @@ Example:
     >>> response = llm.invoke("Hello!")
 """
 
-from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
 from langchain_core.language_models.base import BaseLanguageModel
-from coolprompt.utils.logging_config import logger
+from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
+
 from coolprompt.utils.default import (
     DEFAULT_MODEL_NAME,
     DEFAULT_MODEL_PARAMETERS,
 )
+from coolprompt.utils.logging_config import logger
 
 
 class DefaultLLM:
     """Default LangChain-compatible LLM using transformers."""
 
     @staticmethod
-    def init(
-        langchain_config: dict[str, any] | None = None,
-        vllm_engine_config: dict[str, any] | None = None,
-    ) -> BaseLanguageModel:
+    def init(langchain_config: dict[str, any] | None = None) -> BaseLanguageModel:
         """Initialize the transformers-powered LangChain LLM.
 
         Args:
@@ -30,10 +28,6 @@ class DefaultLLM:
                 Optional dictionary of LangChain VLLM parameters
                 (temperature, top_p, etc).
                 Overrides DEFAULT_MODEL_PARAMETERS.
-            vllm_engine_config (dict[str, Any], optional):
-                Optional dictionary of low-level vllm.LLM parameters
-                (gpu_memory_utilization, max_model_len, etc).
-                Passed directly to vllm.LLM via vllm_kwargs.
         Returns:
             BaseLanguageModel:
                 Initialized LangChain-compatible language model instance.
@@ -44,8 +38,6 @@ class DefaultLLM:
             generation_and_model_config.update(langchain_config)
 
         llm = HuggingFacePipeline.from_model_id(
-            model_id=DEFAULT_MODEL_NAME,
-            task="text-generation",
-            pipeline_kwargs=generation_and_model_config
+            model_id=DEFAULT_MODEL_NAME, task="text-generation", pipeline_kwargs=generation_and_model_config
         )
         return ChatHuggingFace(llm=llm)

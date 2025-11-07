@@ -1,3 +1,5 @@
+# ruff: noqa: RUF001
+
 """
 Prompt templates for the DistillPrompt optimization process.
 

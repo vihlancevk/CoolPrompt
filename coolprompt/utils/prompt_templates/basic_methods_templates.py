@@ -1,3 +1,5 @@
+# ruff: noqa: E501, RUF001
+
 ROLE_EXTRACTING_TEMPLATE = """You are an expert instruction analyst. Your task is to:
 1. Analyze the user's instruction carefully
 2. Identify what domain expertise is required to solve the problem

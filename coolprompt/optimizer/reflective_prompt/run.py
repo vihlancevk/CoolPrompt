@@ -1,5 +1,8 @@
-from typing import List, Tuple
+from collections.abc import Iterable
+from typing import Any
+
 from langchain.llms.base import BaseLanguageModel
+
 from coolprompt.evaluator import Evaluator
 from coolprompt.optimizer.reflective_prompt.evoluter import ReflectiveEvoluter
 from coolprompt.utils.logging_config import logger
@@ -7,11 +10,11 @@ from coolprompt.utils.logging_config import logger
 
 def reflectiveprompt(
     model: BaseLanguageModel,
-    dataset_split: Tuple[List[str], List[str], List[str], List[str]],
+    dataset_split: tuple[type[Iterable[str]], type[Iterable[str]], type[Iterable[str]], type[Iterable[str]]],
     evaluator: Evaluator,
     problem_description: str,
-    initial_prompt: str = None,
-    **kwargs,
+    initial_prompt: str | None = None,
+    **kwargs: dict[str, Any],
 ) -> str:
     """Runs ReflectivePrompt evolution.
 
@@ -23,7 +26,7 @@ def reflectiveprompt(
         task (Task): type of task to optimize for.
         problem_description (str): a string that contains
             short description of problem to optimize.
-        initial_prompt (str, optional): initial prompt to start evolution from.
+        initial_prompt (str | None): initial prompt to start evolution from.
             Defaults to None.
         **kwargs (dict[str, Any]): other parameters
             (such as population_size, num_epochs, output_path, use_cache).
@@ -31,9 +34,7 @@ def reflectiveprompt(
     Returns:
         str: best evoluted prompt.
     """
-    (train_dataset, validation_dataset, train_targets, validation_targets) = (
-        dataset_split
-    )
+    (train_dataset, validation_dataset, train_targets, validation_targets) = dataset_split
     args = {
         "population_size": 10,
         "num_epochs": 5,

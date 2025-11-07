@@ -1,13 +1,14 @@
 import langdetect
-from coolprompt.utils.prompt_templates.correction_templates import (
-    LANGUAGE_DETECTION_TEMPLATE,
-)
+from langchain_core.language_models.base import BaseLanguageModel
+
 from coolprompt.utils.parsing import (
     extract_json,
     get_model_answer_extracted,
     safe_template,
 )
-from langchain_core.language_models.base import BaseLanguageModel
+from coolprompt.utils.prompt_templates.correction_templates import (
+    LANGUAGE_DETECTION_TEMPLATE,
+)
 
 
 def detect_language(text: str, llm: BaseLanguageModel) -> str:

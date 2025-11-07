@@ -1,6 +1,6 @@
 """High-level entry point for the DistillPrompt optimization process."""
 
-from typing import List, Tuple
+from collections.abc import Iterable
 
 from langchain_core.language_models.base import BaseLanguageModel
 
@@ -8,14 +8,14 @@ from coolprompt.evaluator import Evaluator
 from coolprompt.optimizer.distill_prompt.distiller import Distiller
 
 
-def distillprompt(
+def distillprompt(  # noqa: PLR0913
     model: BaseLanguageModel,
-    dataset_split: Tuple[List[str], List[str], List[str], List[str]],
+    dataset_split: tuple[type[Iterable[str]], type[Iterable[str]], type[Iterable[str]], type[Iterable[str]]],
     evaluator: Evaluator,
     initial_prompt: str,
     *,
     num_epochs: int = 5,
-    output_path: str = './distillprompt_outputs',
+    output_path: str = "./distillprompt_outputs",
     use_cache: bool = True,
 ) -> str:
     """Runs the full DistillPrompt optimization process.

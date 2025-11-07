@@ -1,7 +1,9 @@
+from typing import Any
+
 from coolprompt.utils.correction.rule import Rule
 
 
-def correct(prompt: str, rule: Rule, max_attempts: int = 3, **kwargs) -> str:
+def correct(prompt: str, rule: Rule, max_attempts: int = 3, **kwargs: dict[str, Any]) -> str:
     """Running a correction loop. The provided prompt will be checked
     according to the `rule` and, if need to, fixed. Loop will end if the
     `prompt` is correct or after `max_attempts` attempts.

@@ -1,7 +1,9 @@
-from typing import Any, Iterable, Tuple
+from collections.abc import Iterable
+
 from langchain_core.language_models.base import BaseLanguageModel
-from coolprompt.utils.logging_config import logger
+
 from coolprompt.utils.enums import Method, Task
+from coolprompt.utils.logging_config import logger
 
 
 def validate_verbose(verbose: int) -> None:
@@ -30,10 +32,7 @@ def validate_model(model: BaseLanguageModel) -> None:
     """
 
     if not isinstance(model, BaseLanguageModel):
-        error_msg = (
-            "Provided model must be an "
-            "instance of LangChain BaseLanguageModel"
-        )
+        error_msg = "Provided model must be an instance of LangChain BaseLanguageModel"
         logger.error(error_msg)
         raise TypeError(error_msg)
 
@@ -50,10 +49,7 @@ def validate_start_prompt(start_prompt: str) -> None:
         if not start_prompt:
             error_msg = "Start prompt must be provided."
         else:
-            error_msg = (
-                "Start prompt must be a string. "
-                f"Provided: {type(start_prompt).__name__}."
-            )
+            error_msg = f"Start prompt must be a string. Provided: {type(start_prompt).__name__}."
         logger.error(error_msg)
         raise TypeError(error_msg)
 
@@ -75,26 +71,17 @@ def validate_task(task: str) -> Task:
         if not task:
             error_msg = "Task type must be provided."
         else:
-            error_msg = (
-                "Task type must be a string. "
-                f"Provided: {type(task).__name__}."
-            )
+            error_msg = f"Task type must be a string. Provided: {type(task).__name__}."
         logger.error(error_msg)
         raise TypeError(error_msg)
     if task not in Task._value2member_map_:
-        error_msg = (
-            f"Invalid task type: {task}. "
-            f"Available tasks: {', '.join(list(
-                Task._value2member_map_.keys()))}."
-        )
+        error_msg = f"Invalid task type: {task}. Available tasks: {', '.join(list(Task._value2member_map_.keys()))}."
         logger.error(error_msg)
         raise ValueError(error_msg)
     return Task(task)
 
 
-def validate_dataset(
-    dataset: Iterable | None, target: Iterable | None, method: Method
-) -> None:
+def validate_dataset(dataset: Iterable | None, target: Iterable | None, method: Method) -> None:
     """Checks that the provided dataset is an Iterable instance
     and the target is also provided. Also checks that the dataset is
     provided if the method is data-driven.
@@ -115,10 +102,7 @@ def validate_dataset(
             logger.error(error_msg)
             raise ValueError(error_msg)
         if not isinstance(dataset, Iterable):
-            error_msg = (
-                "Dataset must be an Iterable instance. "
-                f"Provided: {type(dataset).__name__}."
-            )
+            error_msg = f"Dataset must be an Iterable instance. Provided: {type(dataset).__name__}."
             logger.error(error_msg)
             raise TypeError(error_msg)
         if len(dataset) == 0:
@@ -158,10 +142,7 @@ def validate_target(target: Iterable | None, dataset: Iterable | None) -> None:
             logger.error(error_msg)
             raise ValueError(error_msg)
         if not isinstance(target, Iterable):
-            error_msg = (
-                "Target must be an Interable instance. "
-                f"Provided: {type(target).__name__}."
-            )
+            error_msg = f"Target must be an Interable instance. Provided: {type(target).__name__}."
             logger.error(error_msg)
             raise TypeError(error_msg)
         if len(target) != len(dataset):
@@ -188,49 +169,19 @@ def validate_method(method: str) -> Method:
     """
 
     if not isinstance(method, str):
-        error_msg = (
-            "Method name must be a string. "
-            f"Provided: {type(method).__name__}."
-        )
+        error_msg = f"Method name must be a string. Provided: {type(method).__name__}."
         logger.error(error_msg)
         raise TypeError(error_msg)
     if method not in Method._value2member_map_:
         error_msg = (
-            f"Unsupported method: {method}. "
-            f"Available methods: {', '.join(list(
-                Method._value2member_map_.keys()))}."
+            f"Unsupported method: {method}. Available methods: {', '.join(list(Method._value2member_map_.keys()))}."
         )
         logger.error(error_msg)
         raise ValueError(error_msg)
     return Method(method)
 
 
-def validate_problem_description(
-    problem_description: str | None, method: Method
-) -> None:
-    """Checks that the problem description is provided as a string
-    when using the ReflectivePrompt optimization.
-
-    Args:
-        problem_description (str | None): Provided problem description.
-        method (Method): Provided method.
-    Raises:
-        TypeError: If `problem_description` is not a string.
-        ValueError: If `problem_description` is not provided when
-            using the ReflectivePrompt method.
-    """
-
-    if problem_description is not None:
-        if not isinstance(problem_description, str):
-            error_msg = (
-                "Problem description must be a string. "
-                f"Provided: {type(problem_description).__name__}."
-            )
-            logger.error(error_msg)
-            raise TypeError(error_msg)
-
-
-def validate_validation_size(validation_size: float | Any) -> None:
+def validate_validation_size(validation_size: float) -> None:
     """Checks that the provided validation_size is a float from 0.0 to 1.0.
 
     Args:
@@ -238,18 +189,31 @@ def validate_validation_size(validation_size: float | Any) -> None:
     Raises:
         ValueError: If `validation_size` is not a float in [0.0, 1.0]."""
 
-    if not isinstance(validation_size, float) or not (
-        0.0 <= validation_size <= 1.0
-    ):
-        error_msg = (
-            "Validation size must be a float between 0.0 and 1.0. "
-            f"Provided: {validation_size}."
-        )
+    if not isinstance(validation_size, float) or not (0.0 <= validation_size <= 1.0):
+        error_msg = f"Validation size must be a float between 0.0 and 1.0. Provided: {validation_size}."
         logger.error(error_msg)
         raise ValueError(error_msg)
 
 
-def validate_run(
+def validate_problem_description(problem_description: str | None) -> None:
+    """Checks that the problem description is provided as a string
+    when using the ReflectivePrompt optimization.
+
+    Args:
+        problem_description (str | None): Provided problem description.
+    Raises:
+        TypeError: If `problem_description` is not a string.
+        ValueError: If `problem_description` is not provided when
+            using the ReflectivePrompt method.
+    """
+
+    if problem_description is not None and not isinstance(problem_description, str):
+        error_msg = f"Problem description must be a string. Provided: {type(problem_description).__name__}."
+        logger.error(error_msg)
+        raise TypeError(error_msg)
+
+
+def validate_run(  # noqa: PLR0913
     start_prompt: str,
     task: str,
     dataset: Iterable | None,
@@ -257,7 +221,7 @@ def validate_run(
     method: str,
     problem_description: str | None,
     validation_size: float,
-) -> Tuple[Task, Method]:
+) -> tuple[Task, Method]:
     """Checks if args for PromptTuner.run() are valid.
 
     Args:
@@ -301,6 +265,6 @@ def validate_run(
     method = validate_method(method)
     validate_dataset(dataset, target, method)
     validate_target(target, dataset)
-    validate_problem_description(problem_description, method)
+    validate_problem_description(problem_description)
     validate_validation_size(validation_size)
     return task, method

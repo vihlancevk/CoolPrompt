@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Type
 
 
 class PromptOrigin(Enum):
@@ -14,7 +13,7 @@ class PromptOrigin(Enum):
     MUTATED = "mutated"
 
     @classmethod
-    def from_string(cls: Type['PromptOrigin'], string: str) -> 'PromptOrigin':
+    def from_string(cls: type["PromptOrigin"], string: str) -> "PromptOrigin":
         """Creates PromptOrigin variable from string description.
 
         Args:
@@ -27,20 +26,14 @@ class PromptOrigin(Enum):
 
 
 class Prompt:
-    def __init__(
-        self,
-        text: str,
-        origin: PromptOrigin = PromptOrigin.EVOLUTED,
-        score: float = None
-    ) -> None:
-
+    def __init__(self, text: str, origin: PromptOrigin = PromptOrigin.EVOLUTED, score: float | None = None) -> None:
         """Prompt class.
 
         Attributes:
             text (str): prompt text.
             origin (PromptOrigin, optional): prompt origin.
                 Defaults to PromptOrigin.EVOLUTED.
-            score (float, optional): prompt evaluation score. Defaults to None.
+            score (float | None): prompt evaluation score. Defaults to None.
         """
         self.text = text
         self.origin = origin
@@ -60,20 +53,13 @@ class Prompt:
         Returns:
             dict: created dictionary.
         """
-        result = {
-            'text': self.text,
-            'origin': self.origin.name
-        }
+        result = {"text": self.text, "origin": self.origin.name}
         if self.score is not None:
-            result['score'] = self.score
+            result["score"] = self.score
         return result
 
     @classmethod
-    def from_dict(
-        cls: Type['Prompt'],
-        data: dict,
-        origin: PromptOrigin = None
-    ) -> 'Prompt':
+    def from_dict(cls: type["Prompt"], data: dict, origin: PromptOrigin = None) -> "Prompt":
         """Creates Prompt variable from dictionary data.
 
         Args:
@@ -88,9 +74,9 @@ class Prompt:
         if origin:
             data.update(origin=origin.name)
         return cls(
-            text=data['text'],
-            origin=PromptOrigin.from_string(data['origin']),
-            score=data.get('score', None),
+            text=data["text"],
+            origin=PromptOrigin.from_string(data["origin"]),
+            score=data.get("score"),
         )
 
     def __str__(self) -> str:

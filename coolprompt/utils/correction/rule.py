@@ -1,18 +1,19 @@
-from abc import ABC
 from typing import Any
+
 from langchain_core.language_models.base import BaseLanguageModel
-from coolprompt.utils.prompt_templates.correction_templates import (
-    TRANSLATION_TEMPLATE,
-)
+
 from coolprompt.utils.language_detection import detect_language
 from coolprompt.utils.parsing import (
     extract_json,
     get_model_answer_extracted,
     safe_template,
 )
+from coolprompt.utils.prompt_templates.correction_templates import (
+    TRANSLATION_TEMPLATE,
+)
 
 
-class Rule(ABC):
+class Rule:
     """Base class for rules which will be checked and fixed by a corrector."""
 
     @property
@@ -26,7 +27,7 @@ class Rule(ABC):
         """
         return False
 
-    def check(self, prompt: str, **kwargs) -> tuple[bool, dict[str, Any]]:
+    def check(self, prompt: str, **kwargs: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
         """Checks if the prompt follows the rule.
 
         Args:
@@ -36,7 +37,6 @@ class Rule(ABC):
             result (tuple[bool, dict[str, Any]]): tuple of flag (correctness)
                 and meta data for fixing.
         """
-        pass
 
     def fix(self, prompt: str, meta: dict[str, Any]) -> str:
         """Fixes the prompt.
@@ -47,7 +47,6 @@ class Rule(ABC):
         Returns:
             result (str): fixed prompt.
         """
-        pass
 
 
 class LanguageRule(Rule):
@@ -59,12 +58,10 @@ class LanguageRule(Rule):
         self.llm = llm
 
     @property
-    def is_guaranteed_after_first_fix(self):
+    def is_guaranteed_after_first_fix(self) -> bool:
         return True
 
-    def check(
-        self, final_prompt: str, start_prompt: str
-    ) -> tuple[bool, dict[str, Any]]:
+    def check(self, final_prompt: str, start_prompt: str) -> tuple[bool, dict[str, Any]]:
         """Checks if the final prompt and the start prompt are in the same
         languages.
 
@@ -84,8 +81,7 @@ class LanguageRule(Rule):
                 "type": "translation",
                 "to_lang": start_prompt_lang,
             }
-        else:
-            return True, {}
+        return True, {}
 
     def fix(self, final_prompt: str, meta: dict[str, Any]) -> str:
         """Performs a translation for `final_prompt` from its language to

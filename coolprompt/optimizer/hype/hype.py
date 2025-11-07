@@ -1,21 +1,19 @@
 from langchain_core.language_models.base import BaseLanguageModel
 
 from coolprompt.utils.logging_config import logger
-from coolprompt.utils.prompt_templates.hype_templates import (
-    HYPE_PROMPT_TEMPLATE,
-)
 from coolprompt.utils.parsing import (
     extract_answer,
     get_model_answer_extracted,
     safe_template,
 )
+from coolprompt.utils.prompt_templates.hype_templates import (
+    HYPE_PROMPT_TEMPLATE,
+)
 
 INSTRUCTIVE_PROMPT_TAGS = ("[PROMPT_START]", "[PROMPT_END]")
 
 
-def hype_optimizer(
-    model: BaseLanguageModel, prompt: str, problem_description: str
-) -> str:
+def hype_optimizer(model: BaseLanguageModel, prompt: str, problem_description: str) -> str:
     """Rewrites prompt by injecting it
     into predefined template and querying LLM.
 
@@ -42,6 +40,4 @@ def hype_optimizer(
     logger.info("HyPE optimization completed")
     logger.debug(f"Raw HyPE output:\n{answer}")
 
-    return extract_answer(
-        answer, INSTRUCTIVE_PROMPT_TAGS, format_mismatch_label=answer
-    )
+    return extract_answer(answer, INSTRUCTIVE_PROMPT_TAGS, format_mismatch_label=answer)

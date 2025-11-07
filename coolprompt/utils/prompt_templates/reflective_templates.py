@@ -1,3 +1,5 @@
+# ruff: noqa: E501, RUF001
+
 REFLECTIVEPROMPT_SHORT_TERM_REFLECTION_TEMPLATE = """You are an expert in the domain of optimization prompts. Your task is to give hints to design better prompts.
 
 Below are two prompts for {PROBLEM_DESCRIPTION}.

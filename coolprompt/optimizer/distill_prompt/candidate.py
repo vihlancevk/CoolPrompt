@@ -5,7 +5,6 @@ Provides a list wrapper for managing candidates.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
@@ -16,6 +15,7 @@ class Candidate:
         prompt (str): The text of the prompt.
         train_score (float): The training score associated with the prompt.
     """
+
     prompt: str
     train_score: float
 
@@ -30,7 +30,7 @@ class CandidateHistory:
         candidates: A list of Candidate objects.
     """
 
-    def __init__(self, candidates: Optional[List[Candidate]] = None) -> None:
+    def __init__(self, candidates: list[Candidate] | None = None) -> None:
         """Initializes the history with an optional list of candidates.
 
         Args:
@@ -38,7 +38,7 @@ class CandidateHistory:
                 of Candidate objects to initialize the history with. Defaults
                 to None.
         """
-        self.candidates: List[Candidate] = []
+        self.candidates: list[Candidate] = []
         if candidates:
             self.candidates.extend(candidates)
 
@@ -50,7 +50,7 @@ class CandidateHistory:
         """
         self.candidates.append(candidate)
 
-    def extend(self, candidates: List[Candidate]) -> None:
+    def extend(self, candidates: list[Candidate]) -> None:
         """Extends the history with a list of Candidate objects.
 
         Args:
@@ -72,8 +72,6 @@ class CandidateHistory:
             ValueError: If there are no candidates in the history.
         """
         if not self.candidates:
-            raise ValueError("No candidates in history")
-        return max(
-            self.candidates,
-            key=lambda candidate: candidate.train_score
-        )
+            error_message = "No candidates in history"
+            raise ValueError(error_message)
+        return max(self.candidates, key=lambda candidate: candidate.train_score)

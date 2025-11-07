@@ -1,3 +1,5 @@
+# ruff: noqa: E501, RUF001
+
 LANGUAGE_DETECTION_TEMPLATE = (
     "You are a multilingual language detection expert. Your task is to analyze the user's query and identify the language of the USER'S REQUEST itself, not the language of the objects mentioned in the request.\n"
     "\n"

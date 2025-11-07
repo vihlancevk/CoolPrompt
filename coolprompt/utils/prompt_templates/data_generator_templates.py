@@ -1,3 +1,5 @@
+# ruff: noqa: E501
+
 PROBLEM_DESCRIPTION_TEMPLATE = """You are an expert in LLM task domain.
 You are given a user's prompt.
 Write the detailed problem description for which that prompt was created.

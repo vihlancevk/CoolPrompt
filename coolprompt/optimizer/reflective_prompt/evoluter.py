@@ -1,27 +1,26 @@
 import os
-import json
-import yaml
-from typing import List, Tuple, Any
+import statistics
+from pathlib import Path
+from typing import Any
 
 import numpy as np
-import statistics
-from scipy.special import softmax
-
-from langchain_core.messages.ai import AIMessage
+import yaml
 from langchain_core.language_models.base import BaseLanguageModel
+from langchain_core.messages.ai import AIMessage
+from scipy.special import softmax
 
 from coolprompt.evaluator import Evaluator
 from coolprompt.optimizer.reflective_prompt.prompt import Prompt, PromptOrigin
 from coolprompt.utils.logging_config import logger
+from coolprompt.utils.parsing import extract_answer, extract_json
 from coolprompt.utils.prompt_templates.reflective_templates import (
-    REFLECTIVEPROMPT_LONG_TERM_REFLECTION_TEMPLATE,
     REFLECTIVEPROMPT_CROSSOVER_TEMPLATE,
+    REFLECTIVEPROMPT_LONG_TERM_REFLECTION_TEMPLATE,
     REFLECTIVEPROMPT_MUTATION_TEMPLATE,
-    REFLECTIVEPROMPT_SHORT_TERM_REFLECTION_TEMPLATE,
     REFLECTIVEPROMPT_PARAPHRASING_TEMPLATE,
     REFLECTIVEPROMPT_PROMPT_BY_DESCRIPTION_TEMPLATE,
+    REFLECTIVEPROMPT_SHORT_TERM_REFLECTION_TEMPLATE,
 )
-from coolprompt.utils.parsing import extract_answer, extract_json
 
 
 class ReflectiveEvoluter:
@@ -58,19 +57,20 @@ class ReflectiveEvoluter:
     PROMPT_TAGS = ("<prompt>", "</prompt>")
     HINT_TAGS = ("<hint>", "</hint>")
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         model: BaseLanguageModel,
         evaluator: Evaluator,
-        train_dataset: List[str],
-        train_targets: List[str],
-        validation_dataset: List[str],
-        validation_targets: List[str],
+        train_dataset: list[str],
+        train_targets: list[str],
+        validation_dataset: list[str],
+        validation_targets: list[str],
         problem_description: str,
-        initial_prompt: str = None,
+        initial_prompt: str | None = None,
         population_size: int = 10,
         num_epochs: int = 10,
         output_path: str = "./reflectiveprompt_outputs",
+        *,
         use_cache: bool = True,
     ) -> None:
         self.model = model
@@ -95,17 +95,11 @@ class ReflectiveEvoluter:
         self._paraphrasing_template = REFLECTIVEPROMPT_PARAPHRASING_TEMPLATE
         self._crossover_template = REFLECTIVEPROMPT_CROSSOVER_TEMPLATE
         self._mutation_template = REFLECTIVEPROMPT_MUTATION_TEMPLATE
-        self._short_term_template = (
-            REFLECTIVEPROMPT_SHORT_TERM_REFLECTION_TEMPLATE
-        )
-        self._long_term_template = (
-            REFLECTIVEPROMPT_LONG_TERM_REFLECTION_TEMPLATE
-        )
-        self._initial_prompt_template = (
-            REFLECTIVEPROMPT_PROMPT_BY_DESCRIPTION_TEMPLATE
-        )
+        self._short_term_template = REFLECTIVEPROMPT_SHORT_TERM_REFLECTION_TEMPLATE
+        self._long_term_template = REFLECTIVEPROMPT_LONG_TERM_REFLECTION_TEMPLATE
+        self._initial_prompt_template = REFLECTIVEPROMPT_PROMPT_BY_DESCRIPTION_TEMPLATE
 
-    def _reranking(self, population: List[Prompt]) -> List[Prompt]:
+    def _reranking(self, population: list[Prompt]) -> list[Prompt]:
         """
         Sorts given population of prompts by their scores in descending order.
 
@@ -115,11 +109,9 @@ class ReflectiveEvoluter:
         Returns:
             List[Prompt]: sorted population.
         """
-        return list(
-            sorted(population, key=lambda prompt: prompt.score, reverse=True)
-        )
+        return sorted(population, key=lambda prompt: prompt.score, reverse=True)
 
-    def _evaluate(self, prompt: Prompt, split="train") -> None:
+    def _evaluate(self, prompt: Prompt, split: str = "train") -> None:
         """Evaluates given prompt on self.dataset and records the score.
 
         Args:
@@ -138,9 +130,7 @@ class ReflectiveEvoluter:
         )
         prompt.set_score(score)
 
-    def _evaluation(
-        self, population: List[Prompt], split: str = "train"
-    ) -> None:
+    def _evaluation(self, population: list[Prompt], split: str = "train") -> None:
         """Evaluation operation for prompts population.
         Evaluates every prompt in population and records the results.
 
@@ -159,15 +149,11 @@ class ReflectiveEvoluter:
         Returns:
             str: initial prompt
         """
-        request = self._initial_prompt_template.format(
-            PROBLEM_DESCRIPTION=self.problem_description
-        )
+        request = self._initial_prompt_template.format(PROBLEM_DESCRIPTION=self.problem_description)
         answer = self._llm_query([request])[0]
-        return extract_answer(
-            answer, self.PROMPT_TAGS, format_mismatch_label=""
-        )
+        return extract_answer(answer, self.PROMPT_TAGS, format_mismatch_label="")
 
-    def _init_pop(self) -> List[Prompt]:
+    def _init_pop(self) -> list[Prompt]:
         """Creates initial population of prompts.
 
         Returns:
@@ -177,36 +163,26 @@ class ReflectiveEvoluter:
         logger.info("Initializing population...")
         if self.initial_prompt is None:
             self.initial_prompt = self._create_initial_prompt()
-        request = self._paraphrasing_template.format(
-            PROMPT=self.initial_prompt, NUM_PROMPTS=self.population_size
-        )
+        request = self._paraphrasing_template.format(PROMPT=self.initial_prompt, NUM_PROMPTS=self.population_size)
         answer = self._llm_query([request])[0]
         prompts = extract_json(answer)["prompts"]
-        initial_population = [
-            Prompt(prompt, origin=PromptOrigin.APE) for prompt in prompts
-        ]
-        initial_population[-1] = Prompt(
-            self.initial_prompt,
-            origin=PromptOrigin.MANUAL
-        )
+        initial_population = [Prompt(prompt, origin=PromptOrigin.APE) for prompt in prompts]
+        initial_population[-1] = Prompt(self.initial_prompt, origin=PromptOrigin.MANUAL)
         self._evaluation(initial_population)
-        initial_population = self._reranking(initial_population)
-        return initial_population
+        return self._reranking(initial_population)
 
-    def _cache_data(self, data: Any, savepath: os.PathLike) -> None:
+    def _cache_data(self, data: Any, savepath: os.PathLike) -> None:  # noqa: ANN401
         """Writes the data to the yaml file.
 
         Args:
             data (Any): data to be cached.
             savepath (os.PathLike): a path to saving file.
         """
-        os.makedirs(os.path.dirname(savepath), exist_ok=True)
-        with open(savepath, "w") as f:
+        Path.mkdir(Path(savepath).parent, exist_ok=True)
+        with Path(savepath).open("w") as f:
             yaml.dump(data, f)
 
-    def _cache_population(
-        self, population: List[Prompt], savepath: os.PathLike
-    ) -> None:
+    def _cache_population(self, population: list[Prompt], savepath: os.PathLike) -> None:
         """Caching a population of prompts to file.
         If self.use_cache is False this function will do nothing.
 
@@ -218,9 +194,7 @@ class ReflectiveEvoluter:
             return
 
         best_score = population[0].score
-        average_score = statistics.mean(
-            [prompt.score for prompt in population]
-        )
+        average_score = statistics.mean([prompt.score for prompt in population])
         data = {
             "best_score": best_score,
             "average_score": average_score,
@@ -228,7 +202,7 @@ class ReflectiveEvoluter:
         }
         self._cache_data(data, savepath)
 
-    def _selection(self, population: List[Prompt]) -> List[Prompt]:
+    def _selection(self, population: list[Prompt]) -> list[Prompt]:
         """Provides selection operation.
         In current implementation we want to select parents
         with different scores.
@@ -251,20 +225,16 @@ class ReflectiveEvoluter:
         trial = 0
         anyways = False
         while len(selected_population) < 2 * self.population_size:
-            parents = np.random.choice(
-                population, size=2, replace=False, p=probas
-            )
+            parents = np.random.choice(population, size=2, replace=False, p=probas)  # noqa: NPY002
             if parents[0].score != parents[1].score or anyways:
                 selected_population.extend(parents)
             trial += 1
-            if trial > 1000:
+            if trial > 1000:  # noqa: PLR2004
                 anyways = True
 
         return selected_population
 
-    def _survive(
-        self, population: List[Prompt], temperature: float = None
-    ) -> List[Prompt]:
+    def _survive(self, population: list[Prompt], temperature: float | None = None) -> list[Prompt]:
         """Final selection before going into new epoch.
         Probabilities are based on softmax function with temperature (if set).
 
@@ -280,13 +250,9 @@ class ReflectiveEvoluter:
         if temperature is not None:
             scores /= temperature
         probas = softmax(scores)
-        return np.random.choice(
-            population, size=self.population_size, replace=False, p=probas
-        )
+        return np.random.choice(population, size=self.population_size, replace=False, p=probas)  # noqa: NPY002
 
-    def _gen_short_term_reflection_prompt(
-        self, ind1: Prompt, ind2: Prompt
-    ) -> Tuple[str, str, str]:
+    def _gen_short_term_reflection_prompt(self, ind1: Prompt, ind2: Prompt) -> tuple[str, str, str]:
         """Generates short-term reflection request into model.
 
         Args:
@@ -319,14 +285,12 @@ class ReflectiveEvoluter:
         Returns:
             os.PathLike: final path to save.
         """
-        return os.path.join(
-            self.output_path, f"Iteration{self.iteration}", f"{filename}.yaml"
-        )
+        return str(Path(self.output_path) / f"Iteration{self.iteration}" / f"{filename}.yaml")
 
     def _short_term_reflection(
         self,
         population: list[Prompt],
-    ) -> Tuple[List[str], List[str], List[str]]:
+    ) -> tuple[list[str], list[str], list[str]]:
         """Short-term reflection before crossovering two individuals.
 
         Args:
@@ -345,24 +309,19 @@ class ReflectiveEvoluter:
             parent_1 = population[i]
             parent_2 = population[i + 1]
 
-            (request, worse_prompt, better_prompt) = (
-                self._gen_short_term_reflection_prompt(parent_1, parent_2)
-            )
+            (request, worse_prompt, better_prompt) = self._gen_short_term_reflection_prompt(parent_1, parent_2)
             requests.append(request)
             worse_prompts.append(worse_prompt)
             better_prompts.append(better_prompt)
 
         responses = self._llm_query(requests)
-        responses = [
-            extract_answer(response, self.HINT_TAGS, format_mismatch_label="")
-            for response in responses
-        ]
+        responses = [extract_answer(response, self.HINT_TAGS, format_mismatch_label="") for response in responses]
         return responses, worse_prompts, better_prompts
 
     def _crossover(
         self,
-        short_term_reflection_tuple: Tuple[List[str], List[str], List[str]],
-    ) -> List[Prompt]:
+        short_term_reflection_tuple: tuple[list[str], list[str], list[str]],
+    ) -> list[Prompt]:
         """Provides crossover operation.
 
         Args:
@@ -373,12 +332,10 @@ class ReflectiveEvoluter:
         Returns:
             List[Prompt]: new crossed prompts population.
         """
-        (reflection_contents, worse_prompts, better_prompts) = (
-            short_term_reflection_tuple
-        )
+        (reflection_contents, worse_prompts, better_prompts) = short_term_reflection_tuple
         requests = []
         for reflection, worse_prompt, better_prompt in zip(
-            reflection_contents, worse_prompts, better_prompts
+            reflection_contents, worse_prompts, better_prompts, strict=True
         ):
             request = self._crossover_template.format(
                 PROBLEM_DESCRIPTION=self.problem_description,
@@ -389,18 +346,13 @@ class ReflectiveEvoluter:
             requests.append(request)
 
         responses = self._llm_query(requests)
-        responses = [
-            extract_answer(
-                response, self.PROMPT_TAGS, format_mismatch_label=""
-            )
-            for response in responses
-        ]
+        responses = [extract_answer(response, self.PROMPT_TAGS, format_mismatch_label="") for response in responses]
         crossed_population = [Prompt(response) for response in responses]
 
-        assert len(crossed_population) == self.population_size
+        assert len(crossed_population) == self.population_size  # noqa: S101
         return crossed_population
 
-    def _update_elitist(self, population: List[Prompt]) -> None:
+    def _update_elitist(self, population: list[Prompt]) -> None:
         """Updates elitist, best_score_overall, best_prompt_overall.
 
         Args:
@@ -409,10 +361,7 @@ class ReflectiveEvoluter:
         scores = [prompt.score for prompt in population]
         best_score, best_sample_idx = max(scores), np.argmax(np.array(scores))
 
-        if (
-            self.best_score_overall is None
-            or best_score >= self.best_score_overall
-        ):
+        if self.best_score_overall is None or best_score >= self.best_score_overall:
             self.best_score_overall = best_score
             self.best_prompt_overall = population[best_sample_idx].text
             self.elitist = population[best_sample_idx]
@@ -422,7 +371,7 @@ class ReflectiveEvoluter:
             )
             logger.debug(f"Elitist text:\n{self.elitist.text}")
 
-    def _update_iter(self, population: List[Prompt]) -> None:
+    def _update_iter(self, population: list[Prompt]) -> None:
         """Updates iteration. Cache current state.
 
         Args:
@@ -432,13 +381,11 @@ class ReflectiveEvoluter:
         logger.info(f"Best score: {self.best_score_overall}")
 
         population = self._reranking(population)
-        self._cache_population(
-            population, self._make_output_path("population")
-        )
+        self._cache_population(population, self._make_output_path("population"))
 
         self.iteration += 1
 
-    def _long_term_reflection(self, short_term_reflections: List[str]) -> None:
+    def _long_term_reflection(self, short_term_reflections: list[str]) -> None:
         """Long-term reflection before mutation.
 
         Args:
@@ -452,11 +399,9 @@ class ReflectiveEvoluter:
 
         response = self._llm_query([request])[0]
 
-        self._long_term_reflection_str = extract_answer(
-            response, self.HINT_TAGS, format_mismatch_label=""
-        )
+        self._long_term_reflection_str = extract_answer(response, self.HINT_TAGS, format_mismatch_label="")
 
-    def _llm_query(self, requests: List[str]) -> List[str]:
+    def _llm_query(self, requests: list[str]) -> list[str]:
         """Provides api to query requests to the model.
 
         Args:
@@ -468,13 +413,9 @@ class ReflectiveEvoluter:
 
         answers = self.model.batch(requests)
 
-        answers = [a.content
-                   if isinstance(a, AIMessage)
-                   else a for a in answers]
+        return [a.content if isinstance(a, AIMessage) else a for a in answers]
 
-        return answers
-
-    def _mutate(self) -> List[Prompt]:
+    def _mutate(self) -> list[Prompt]:
         """Elitist-based mutation.
 
         Returns:
@@ -486,17 +427,8 @@ class ReflectiveEvoluter:
             ELITIST_PROMPT=self.elitist.text,
         )
         responses = self._llm_query([request] * self.population_size)
-        responses = [
-            extract_answer(
-                response, self.PROMPT_TAGS, format_mismatch_label=""
-            )
-            for response in responses
-        ]
-        population = [
-            Prompt(response, origin=PromptOrigin.MUTATED)
-            for response in responses
-        ]
-        return population
+        responses = [extract_answer(response, self.PROMPT_TAGS, format_mismatch_label="") for response in responses]
+        return [Prompt(response, origin=PromptOrigin.MUTATED) for response in responses]
 
     def evolution(self) -> str:
         """Provides evolution operation.
@@ -514,16 +446,12 @@ class ReflectiveEvoluter:
         """
 
         population = np.array(self._init_pop())
-        self._cache_population(
-            population, self._make_output_path("initial_population.yaml")
-        )
+        self._cache_population(population, self._make_output_path("initial_population.yaml"))
 
         while self.iteration < self.num_epochs:
             parent_population = self._selection(population)
 
-            short_term_reflection_tuple = self._short_term_reflection(
-                parent_population
-            )
+            short_term_reflection_tuple = self._short_term_reflection(parent_population)
             self._cache_data(
                 short_term_reflection_tuple[0],
                 self._make_output_path("short_term_reflections"),
@@ -561,9 +489,7 @@ class ReflectiveEvoluter:
         population = np.append(population, self.elitist)
         self._evaluation(population, split="validation")
         population = self._reranking(population)
-        self._cache_population(
-            population, self._make_output_path("best_prompts_infer.yaml")
-        )
+        self._cache_population(population, self._make_output_path("best_prompts_infer.yaml"))
         self.elitist = population[0]
         self.best_prompt_overall = self.elitist.text
         self.best_score_overall = self.elitist.score

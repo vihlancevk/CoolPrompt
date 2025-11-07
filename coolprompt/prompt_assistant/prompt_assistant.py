@@ -19,12 +19,9 @@ class PromptAssistant:
         model (langchain.BaseLanguageModel): LangChain language model.
     """
 
-    COMMON_FEEDBACK = (
-        "You should follow these three simple rules:\n"
-        "1. Structured 2. Detalized 3. Instructive"
-    )
+    COMMON_FEEDBACK = "You should follow these three simple rules:\n1. Structured 2. Detalized 3. Instructive"
 
-    def __init__(self, model: BaseLanguageModel):
+    def __init__(self, model: BaseLanguageModel) -> None:
         self.model = model
 
     def get_feedback(self, start_prompt: str, final_prompt: str) -> str:
