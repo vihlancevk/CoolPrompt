@@ -13,8 +13,8 @@ from coolprompt.utils.logging_config import logger
 from coolprompt.utils.parsing import extract_answer
 
 
-class HFEvaluateMetric(ABC):
 class HFEvaluateMetric:
+    _HF_EVALUATE_METRIC_DIR: ClassVar[Path] = Path(os.getenv("HF_EVALUATE_METRIC_DIR", default=""))
 
     def __init__(self, name: str) -> None:
         """Initialize metric with specified evaluate library metric name.
@@ -24,8 +24,7 @@ class HFEvaluateMetric:
         """
 
         self._return_parameter = name
-        self._metric = load(name)
-        self._compute_kwargs_func = lambda outputs, targets: {}
+        self._metric = load(str(self._HF_EVALUATE_METRIC_DIR / name))
         self._compute_kwargs_func = lambda _, __: {}
         super().__init__()
 
